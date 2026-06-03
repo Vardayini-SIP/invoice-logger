@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Invoice Logger">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
@@ -687,10 +687,26 @@ async function loadRecordsFromExcel() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      photoData = e.target.result;
-      document.getElementById('preview-img').src = photoData;
-      document.getElementById('upload-placeholder').style.display = 'none';
-      document.getElementById('upload-preview').style.display = 'block';
+      // Compress image before storing — phone photos are 3-8MB, we compress to ~200KB
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 1024; // max width/height in pixels
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+        else       { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        photoData = canvas.toDataURL('image/jpeg', 0.7); // 70% quality JPEG
+        document.getElementById('preview-img').src = photoData;
+        document.getElementById('upload-placeholder').style.display = 'none';
+        document.getElementById('upload-preview').style.display = 'block';
+        // Show compressed size hint
+        const kb = Math.round(photoData.length * 0.75 / 1024);
+        console.log(`Photo compressed to ~${kb}KB`);
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   }
@@ -735,26 +751,43 @@ async function loadRecordsFromExcel() {
     updateBadge();
 
     // Send to Excel via Power Automate in background (non-blocking)
+    const photoBase64 = photoData ? photoData.replace(/^data:image\/\w+;base64,/, '') : "";
+    console.log(`Sending to PA — photo size: ${Math.round(photoBase64.length * 0.75 / 1024)}KB`);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     fetch("https://default1250f2eb4784422398dcd6e3344556.5c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4008b4a0004a4b0fb32289a426e92b8d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PbOan40pXQ7YLfzzhqtOOFMiVVFcj74JEwxyPBL1LTc", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         invoiceNo: invNum,
         driverMobile: mobile,
         date: date,
         exchangedBy: name,
-        photo: photoData ? photoData.replace(/^data:image\/\w+;base64,/, '') : ""
+        photo: photoBase64
       })
     })
     .then(response => {
-      if (!response.ok) throw new Error("Power Automate error");
-      console.log("Saved to Excel");
+      clearTimeout(timeout);
+      if (!response.ok) throw new Error(`PA responded with ${response.status}`);
+      console.log("Saved to Excel ✓");
       records = records.map(r => r.id === record.id ? { ...r, _local: false } : r);
       localStorage.setItem('cdf_invoices', JSON.stringify(records));
+      // Re-render to remove SYNCING badge
+      if (document.getElementById('page-records').classList.contains('active')) {
+        renderRecords();
+      }
     })
     .catch(error => {
-      console.error(error);
-      showToast('⚠ Excel sync failed — record saved locally');
+      clearTimeout(timeout);
+      console.error("PA error:", error.message);
+      if (error.name === 'AbortError') {
+        showToast('⚠ Sync timed out — will retry on next open');
+      } else {
+        showToast('⚠ Excel sync failed: ' + error.message);
+      }
     });
 
     // Clear form
