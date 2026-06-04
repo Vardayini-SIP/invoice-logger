@@ -737,14 +737,24 @@ async function loadRecordsFromExcel() {
     if (!date) { alert('Please select a date.'); return; }
     if (!name) { alert('Please enter your name.'); return; }
 
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60000;
+    const ist = new Date(now.getTime() + istOffset);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const hrs = ist.getUTCHours();
+    const mins = String(ist.getUTCMinutes()).padStart(2,'0');
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    const hrs12 = hrs % 12 || 12;
+    const readableTimestamp = `${ist.getUTCDate()} ${months[ist.getUTCMonth()]} ${ist.getUTCFullYear()}, ${hrs12}:${mins} ${ampm} IST`;
+
     const record = {
       id: Date.now(),
       invoiceNo: invNum,
       driverMobile: mobile,
       date: normalizeDate(date),
       exchangedBy: name,
-      photo: photoData,        // full base64 kept locally
-      timestamp: new Date().toISOString(),
+      photo: photoData,
+      timestamp: readableTimestamp,
       _local: true
     };
 
