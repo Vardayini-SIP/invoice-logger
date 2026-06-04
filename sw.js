@@ -1,8 +1,10 @@
-const CACHE_NAME = 'cdf-invoice-v1';
+const CACHE_NAME = 'cdf-invoice-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  '/invoice-logger/',
+  '/invoice-logger/index.html',
+  '/invoice-logger/manifest.json',
+  '/invoice-logger/icon-192.png',
+  '/invoice-logger/icon-512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -22,12 +24,14 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // For Power Automate API calls — always go to network
-  if (e.request.url.includes('powerplatform.com')) {
+  if (e.request.url.includes('powerplatform.com') ||
+      e.request.url.includes('googleapis.com')) {
     return e.respondWith(fetch(e.request));
   }
-  // For everything else — cache first, network fallback
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).catch(() => caches.match('/invoice-logger/index.html'));
+    })
   );
 });
