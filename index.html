@@ -1077,7 +1077,7 @@ async function loadRecordsFromExcel() {
   // Register service worker for PWA installability
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
+      navigator.serviceWorker.register('/invoice-logger/sw.js', { scope: '/invoice-logger/' })
         .then(() => console.log('SW registered'))
         .catch(e => console.log('SW failed:', e));
     });
