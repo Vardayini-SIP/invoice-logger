@@ -730,7 +730,7 @@ async function loadRecordsFromExcel() {
         // Compress until under 200KB
         let quality = 0.6;
         let result = canvas.toDataURL('image/jpeg', quality);
-        while (result.length > 200000 && quality > 0.1) {
+        while (result.length > 500000 && quality > 0.1) {
           quality -= 0.1;
           result = canvas.toDataURL('image/jpeg', quality);
         }
