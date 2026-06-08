@@ -806,7 +806,7 @@ async function loadRecordsFromExcel() {
     console.log(`Sending to PA — photo size: ~${photoKB}KB`);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout for large photos
+    const timeout = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large photos
 
     fetch("https://default1250f2eb4784422398dcd6e3344556.5c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4008b4a0004a4b0fb32289a426e92b8d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PbOan40pXQ7YLfzzhqtOOFMiVVFcj74JEwxyPBL1LTc", {
       method: "POST",
