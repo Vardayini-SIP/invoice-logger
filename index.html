@@ -473,16 +473,31 @@
       <input type="text" id="inv-number" placeholder="e.g. JODL/2025/001234">
     </div>
     <div class="field">
-      <label>Driver Mobile No.</label>
-      <input type="tel" id="driver-mobile" placeholder="e.g. 9876543210" maxlength="10">
+      <label>Vehicle Number *</label>
+      <input type="text" id="vehicle-number" placeholder="e.g. MH04AB1234">
+    </div>
+    <div class="field">
+      <label>Gate *</label>
+      <select id="gate" style="width:100%;padding:14px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:15px;font-family:inherit;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path d=%22M1 1l5 5 5-5%22 stroke=%22%237a7f94%22 stroke-width=%221.5%22 fill=%22none%22/></svg>');background-repeat:no-repeat;background-position:right 14px center;">
+        <option value="">Select gate…</option>
+        <option value="Alibag Gate">Alibag Gate</option>
+        <option value="Goa Gate">Goa Gate</option>
+      </select>
     </div>
     <div class="field">
       <label>Date *</label>
       <input type="date" id="inv-date">
     </div>
     <div class="field">
-      <label>Exchanged By (Your Name) *</label>
-      <input type="text" id="exchanged-by" placeholder="Enter your name" autocomplete="name">
+      <label>Exchanged By *</label>
+      <select id="exchanged-by" style="width:100%;padding:14px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:15px;font-family:inherit;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path d=%22M1 1l5 5 5-5%22 stroke=%22%237a7f94%22 stroke-width=%221.5%22 fill=%22none%22/></svg>');background-repeat:no-repeat;background-position:right 14px center;">
+        <option value="">Select name…</option>
+        <option value="Mandar">Mandar</option>
+        <option value="Atharv">Atharv</option>
+        <option value="Suraj">Suraj</option>
+        <option value="Nikhil">Nikhil</option>
+        <option value="Shubham">Shubham</option>
+      </select>
     </div>
 
     <button class="btn-submit" onclick="submitInvoice()">✓ &nbsp;Log This Invoice</button>
@@ -631,7 +646,8 @@ async function loadRecordsFromExcel() {
       return {
         id: r.ItemInternalId || Date.now(),
         invoiceNo,
-        driverMobile: r["Driver Mobile"] || "",
+        vehicleNo: r["Vehicle No"] || "",
+        gate: r["Gate"] || "",
         date: normalizeDate(r["Date"] || ""),
         exchangedBy: r["Exchanged by"] || "",
         timestamp: r["Timestamp"] || "",
@@ -729,13 +745,15 @@ async function loadRecordsFromExcel() {
 
   function submitInvoice() {
     const invNum = document.getElementById('inv-number').value.trim();
-    const mobile = document.getElementById('driver-mobile').value.trim();
+    const vehicleNo = document.getElementById('vehicle-number').value.trim();
+    const gate = document.getElementById('gate').value;
     const date = document.getElementById('inv-date').value;
-    const name = document.getElementById('exchanged-by').value.trim();
+    const name = document.getElementById('exchanged-by').value;
 
     if (!invNum) { alert('Please enter the invoice number.'); return; }
+    if (!gate) { alert('Please select a gate.'); return; }
     if (!date) { alert('Please select a date.'); return; }
-    if (!name) { alert('Please enter your name.'); return; }
+    if (!name) { alert('Please select your name.'); return; }
 
     const now = new Date();
     const istOffset = 5.5 * 60 * 60000;
@@ -750,7 +768,8 @@ async function loadRecordsFromExcel() {
     const record = {
       id: Date.now(),
       invoiceNo: invNum,
-      driverMobile: mobile,
+      vehicleNo: vehicleNo,
+      gate: gate,
       date: normalizeDate(date),
       exchangedBy: name,
       photo: photoData,
@@ -782,7 +801,8 @@ async function loadRecordsFromExcel() {
       signal: controller.signal,
       body: JSON.stringify({
         invoiceNo: invNum,
-        driverMobile: mobile,
+        vehicleNo: vehicleNo,
+        gate: gate,
         date: date,
         exchangedBy: name,
         photo: photoBase64
@@ -811,7 +831,8 @@ async function loadRecordsFromExcel() {
 
     // Clear form
     document.getElementById('inv-number').value = '';
-    document.getElementById('driver-mobile').value = '';
+    document.getElementById('vehicle-number').value = '';
+    document.getElementById('gate').value = '';
     document.getElementById('inv-date').value = todayStr;
     document.getElementById('exchanged-by').value = '';
     removePhoto({ stopPropagation: () => {} });
@@ -859,9 +880,10 @@ async function loadRecordsFromExcel() {
 
     let filtered = records.filter(r => {
       const matchSearch = !search ||
-        r.invoiceNo.toLowerCase().includes(search) ||
-        r.driverMobile.includes(search) ||
-        r.exchangedBy.toLowerCase().includes(search);
+        (r.invoiceNo || '').toLowerCase().includes(search) ||
+        (r.vehicleNo || '').toLowerCase().includes(search) ||
+        (r.gate || '').toLowerCase().includes(search) ||
+        (r.exchangedBy || '').toLowerCase().includes(search);
       const matchDate = !filterDate || r.date === filterDate;
       const matchPerson = !filterPerson || r.exchangedBy === filterPerson;
       return matchSearch && matchDate && matchPerson;
@@ -882,8 +904,12 @@ async function loadRecordsFromExcel() {
         </div>
         <div class="record-body">
           <div class="record-field">
-            <div class="record-field-label">Driver Mobile</div>
-            <div class="record-field-value">${r.driverMobile || '—'}</div>
+            <div class="record-field-label">Vehicle No</div>
+            <div class="record-field-value">${escHtml(r.vehicleNo || '—')}</div>
+          </div>
+          <div class="record-field">
+            <div class="record-field-label">Gate</div>
+            <div class="record-field-value">${escHtml(r.gate || '—')}</div>
           </div>
           <div class="record-field">
             <div class="record-field-label">Logged At</div>
@@ -977,9 +1003,9 @@ async function loadRecordsFromExcel() {
 
   function exportCSV() {
     if (records.length === 0) { alert('No records to export.'); return; }
-    const headers = ['Invoice No','Driver Mobile','Date','Exchanged By','Logged At'];
+    const headers = ['Invoice No','Vehicle No','Gate','Date','Exchanged By','Logged At'];
     const rows = records.map(r => [
-      `"${r.invoiceNo}"`,`"${r.driverMobile}"`,
+      `"${r.invoiceNo}"`,`"${r.vehicleNo || ''}"`,`"${r.gate || ''}"`,
       `"${r.date}"`,`"${r.exchangedBy}"`,`"${r.timestamp}"`
     ].join(','));
     const csv = [headers.join(','), ...rows].join('\n');
