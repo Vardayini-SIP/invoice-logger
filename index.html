@@ -659,7 +659,7 @@ async function loadRecordsFromExcel() {
       return {
         id: r.ItemInternalId || Date.now(),
         invoiceNo,
-        vehicleNo: r["Vehicle Number"] || r["VehicleNumber"] || r["Vehicle No"] || r["VehicleNo"] || r["vehicle_number"] || "",
+        vehicleNo: r["Vehicle Number "] || r["Vehicle Number"] || r["VehicleNo"] || "",
         gate: r["Gate"] || "",
         date: normalizeDate(r["Date"] || ""),
         exchangedBy: r["Exchanged by"] || r["Exchanged By"] || "",
