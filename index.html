@@ -393,25 +393,27 @@
   /* Modal */
   .modal-backdrop {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.92); z-index: 200;
+    background: rgba(0,0,0,0.95); z-index: 200;
     flex-direction: column;
     align-items: center; justify-content: center;
-    padding: 60px 20px 40px;
-    gap: 12px;
-    overflow-y: auto;
+    padding: 50px 12px 16px;
+    gap: 10px;
+    box-sizing: border-box;
   }
   .modal-backdrop.open { display: flex; }
   .modal-img {
-    max-width: 100%; max-height: 55vh;
+    width: 100%;
+    max-height: calc(100vh - 130px);
     border-radius: 10px; object-fit: contain;
-    flex-shrink: 0;
+    flex-shrink: 1; flex-grow: 0;
   }
   .modal-close {
-    position: fixed; top: 16px; right: 16px;
+    position: fixed; top: 10px; right: 10px;
     background: rgba(255,255,255,0.15); border: none; color: #fff;
-    font-size: 22px; width: 40px; height: 40px; border-radius: 50%;
+    font-size: 18px; width: 36px; height: 36px; border-radius: 50%;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    z-index: 201;
+    z-index: 202;
+  }
   }
 
   .section-label {
@@ -583,9 +585,9 @@
     <div class="sp-msg-body" style="color:#7a7f94; font-size:13px; line-height:1.6;">Opens in your browser — make sure you're signed into your JSW Microsoft account.</div>
   </div>
   <button id="modal-download-btn" onclick="event.stopPropagation()" style="
-    margin-top:16px;
+    margin-top:0; flex-shrink:0;
     background:var(--accent); color:#000; border:none; border-radius:8px;
-    padding:12px 28px; font-size:14px; font-weight:700;
+    padding:9px 22px; font-size:13px; font-weight:700;
     font-family:'IBM Plex Sans',sans-serif; cursor:pointer; z-index:201;
     white-space:nowrap;">
     ⬇ Download Photo
@@ -641,6 +643,8 @@ async function loadRecordsFromExcel() {
     );
 
     const data = await response.json();
+    // Debug: log first record keys to see exact column names from Excel
+    if (data && data.length > 0) console.log('Excel columns:', Object.keys(data[0]));
 
     const excelRecords = data.map(r => {
       const invoiceNo = r["Invoice No"] || "";
@@ -648,15 +652,17 @@ async function loadRecordsFromExcel() {
 
       // Prefer local copy (base64) if available, else use SharePoint URL from Excel
       const localPhoto = localStorage.getItem('cdf_photo_' + invoiceNo);
-      const photo = localPhoto || photoVal;
+      // Don't use raw base64 from Excel cell (gets truncated/corrupted)
+      const isValidUrl = photoVal.startsWith('http');
+      const photo = localPhoto || (isValidUrl ? photoVal : "");
 
       return {
         id: r.ItemInternalId || Date.now(),
         invoiceNo,
-        vehicleNo: r["Vehicle Number"] || r["Vehicle No"] || r["VehicleNo"] || "",
-        gate: r["Gate"] || r["gate"] || "",
+        vehicleNo: r["Vehicle Number"] || r["VehicleNumber"] || r["Vehicle No"] || r["VehicleNo"] || r["vehicle_number"] || "",
+        gate: r["Gate"] || "",
         date: normalizeDate(r["Date"] || ""),
-        exchangedBy: r["Exchanged by"] || "",
+        exchangedBy: r["Exchanged by"] || r["Exchanged By"] || "",
         timestamp: r["Timestamp"] || "",
         photo,
         _local: false
