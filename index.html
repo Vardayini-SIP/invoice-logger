@@ -764,6 +764,7 @@ async function loadRecordsFromExcel() {
     const name = document.getElementById('exchanged-by').value;
 
     if (!invNum) { alert('Please enter the invoice number.'); return; }
+    if (!photoData) { alert('Please add an invoice photo.'); return; }
     if (!gate) { alert('Please select a gate.'); return; }
     if (!date) { alert('Please select a date.'); return; }
     if (!name) { alert('Please select your name.'); return; }
